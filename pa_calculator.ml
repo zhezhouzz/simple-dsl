@@ -32,30 +32,31 @@ let _loc = Loc.mk "<string>"
 
 exception PaserError of string
 
-let rec generate_code = function
-    | Num i -> (Some i, let i_str = string_of_int i in <:expr< $int:i_str$ >>)
-    | Variable s -> (* let i = 1
-                    let i = (try (MyUsers.find s st) with Not_found -> raise (PaserError "PaserError")) in *)
-                    (Some 1, let i_str = string_of_int 1 in <:expr< $int:i_str$ >>)
-    | Plus (v1, v2) -> let ast_v1 = generate_code  v1
-                       and ast_v2 = generate_code  v2
-                       in (match (ast_v1, ast_v2) with
-                       | ((Some i), _), ((Some j), _) -> let _str = string_of_int (i+j) in ((Some (i+j)), <:expr< $int:_str$ >>)
-                       | (_, code1), (_, code2)       -> raise (PaserError "PaserError"))
-    | Multi (v1, v2) -> let ast_v1 = generate_code  v1
-                       and ast_v2 = generate_code  v2
-                       in (match (ast_v1, ast_v2) with
-                       | ((Some i), _), ((Some j), _) -> let _str = string_of_int (i*j) in ((Some (i*j)), <:expr< $int:_str$ >>)
-                       | (_, code1), (_, code2)       -> raise (PaserError "PaserError"))
-    | Minus (v1, v2) -> let ast_v1 = generate_code  v1
-                       and ast_v2 = generate_code  v2
-                       in (match (ast_v1, ast_v2) with
-                       | ((Some i), _), ((Some j), _) -> let _str = string_of_int (i-j) in ((Some (i-j)), <:expr< $int:_str$ >>)
-                       | (_, code1), (_, code2)       -> raise (PaserError "PaserError"))
+let rec generate_code st e =
+  match e with
+  | Num i -> (Some i, let i_str = string_of_int i in <:expr< $int:i_str$ >>)
+  | Variable s -> let i = (try (MyUsers.find s st) with Not_found -> raise (PaserError "PaserError")) in
+                  (Some i, let i_str = string_of_int i in <:expr< $int:i_str$ >>)
+  | Plus (v1, v2) -> let ast_v1 = generate_code st v1
+                     and ast_v2 = generate_code st v2
+                     in (match (ast_v1, ast_v2) with
+                     | ((Some i), _), ((Some j), _) -> let _str = string_of_int (i+j) in ((Some (i+j)), <:expr< $int:_str$ >>)
+                     | (_, code1), (_, code2)       -> raise (PaserError "PaserError"))
+  | Multi (v1, v2) -> let ast_v1 = generate_code st v1
+                     and ast_v2 = generate_code st v2
+                     in (match (ast_v1, ast_v2) with
+                     | ((Some i), _), ((Some j), _) -> let _str = string_of_int (i*j) in ((Some (i*j)), <:expr< $int:_str$ >>)
+                     | (_, code1), (_, code2)       -> raise (PaserError "PaserError"))
+  | Minus (v1, v2) -> let ast_v1 = generate_code st v1
+                     and ast_v2 = generate_code st v2
+                     in (match (ast_v1, ast_v2) with
+                     | ((Some i), _), ((Some j), _) -> let _str = string_of_int (i-j) in ((Some (i-j)), <:expr< $int:_str$ >>)
+                     | (_, code1), (_, code2)       -> raise (PaserError "PaserError"))
 
 let parse_and_generate_code str =
-  let e = Gram.parse_string expression _loc str in
-   match (try (generate_code e) with (PaserError err_code) -> (None, <:expr< $str:err_code$ >>)) with
+  let e = Gram.parse_string expression _loc str
+  and st = MyUsers.empty in
+   match (try (generate_code st e) with (PaserError err_code) -> (None, <:expr< $str:err_code$ >>)) with
    | _, code -> code
 
 let _ =
