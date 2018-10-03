@@ -47,7 +47,15 @@ EXTEND Gram
 
   bool_expr:
   [   "NumBool" NONA
-      [ b = SYMBOL -> Num i]
+      [ b = SYMBOL -> let if_true = equal "true" b in
+                      (match if_true with
+                       | true -> NumBool true
+                       | false -> let if_false = equal "false" b in
+                                  (match if_false with
+                                   | true -> NumBool false
+                                   | false -> ))
+                      | "true" ->
+                      |  ]
     | "NumString" NONA
       [ s = LIDENT -> Variable s]
     | "Plus" LEFTA
